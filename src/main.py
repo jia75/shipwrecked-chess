@@ -52,7 +52,6 @@ class App(badge.BaseApp):
         print("Creating lobby")
         self.is_host = True
         self.players = [badge.contacts.my_contact().badge_id] # Badge ID for now, as when queuing, we only get the ID
-        self.last_player_size = 0
         self.state = "Lobby"
 
     def join_lobby(self) -> None:
@@ -238,6 +237,7 @@ class App(badge.BaseApp):
         self.is_host = False
         self.players = []
         self.state = "Home" # Home, Game, Lobby
+        self.last_player_size = 0
         self.display_home()
         badge.display.show()
 
