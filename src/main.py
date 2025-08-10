@@ -117,13 +117,88 @@ class App(badge.BaseApp):
                 self.grid[sy][sx] = 0
 
         elif ptype == 3:
-            pass
+            if abs(tx - sx) == abs(ty - sy) and tx != sx:
+                stepx = 1 if tx > sx else -1
+                stepy = 1 if ty > sy else -1
+                x = sx + stepx
+                y = sy + stepy
+                clear = True
+                while x != tx and y != ty:
+                    if self.grid[y][x] != 0:
+                        clear = False
+                        break
+                    x += stepx
+                    y += stepy
+                if clear:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
         elif ptype == 4:
-            pass
+            if sx == tx or sy == ty:
+                clear = True
+                if sx == tx:
+                    stepy = 1 if ty > sy else -1
+                    y = sy + stepy
+                    while y != ty:
+                        if self.grid[y][sx] != 0:
+                            clear = False
+                            break
+                        y += stepy
+                else:
+                    stepx = 1 if tx > sx else -1
+                    x = sx + stepx
+                    while x != tx:
+                        if self.grid[sy][x] != 0:
+                            clear = False
+                            break
+                        x += stepx
+                if clear:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
         elif ptype == 5:
-            pass
+            dx = tx - sx
+            dy = ty - sy
+            if abs(dx) == abs(dy) and dx != 0:
+                stepx = 1 if dx > 0 else -1
+                stepy = 1 if dy > 0 else -1
+                x = sx + stepx
+                y = sy + stepy
+                clear = True
+                while x != tx and y != ty:
+                    if self.grid[y][x] != 0:
+                        clear = False
+                        break
+                    x += stepx
+                    y += stepy
+                if clear:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
+            elif sx == tx or sy == ty:
+                clear = True
+                if sx == tx:
+                    stepy = 1 if ty > sy else -1
+                    y = sy + stepy
+                    while y != ty:
+                        if self.grid[y][sx] != 0:
+                            clear = False
+                            break
+                        y += stepy
+                else:
+                    stepx = 1 if tx > sx else -1
+                    x = sx + stepx
+                    while x != tx:
+                        if self.grid[sy][x] != 0:
+                            clear = False
+                            break
+                        x += stepx
+                if clear:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
         elif ptype == 6:
-            pass
+            dx = abs(tx - sx)
+            dy = abs(ty - sy)
+            if dx <= 1 and dy <= 1 and not (dx == 0 and dy == 0):
+                self.grid[ty][tx] = piece
+                self.grid[sy][sx] = 0
     
     def send_move(self, move):
         if self.state != "Game":
