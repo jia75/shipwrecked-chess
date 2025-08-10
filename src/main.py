@@ -36,6 +36,7 @@ class App(badge.BaseApp):
         self.oldPos = [3, 13]
         self.selected = [-1, -1]
         self.last_player_size = 0
+        self.state = "Home" # Home, Game, Lobby, NoBadge
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if piece == -1:
