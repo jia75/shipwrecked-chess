@@ -172,15 +172,12 @@ class App(badge.BaseApp):
         sx, sy = move[0]
         tx, ty = move[1]
 
-        piece = self.grid[sy][sx]
-        dest = self.grid[ty][tx]
-        ptype = piece % 10
-
-        if dest == -1 or (dest > 0 and dest // 10 == self.num):
-            return
-
-        self.grid[ty][tx] = piece
+        self.grid[ty][tx] = self.grid[sy][sx]
         self.grid[sy][sx] = 0
+
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        badge.display.show()
     
     def send_move(self, move):
         if self.state != "Game":
@@ -260,7 +257,7 @@ class App(badge.BaseApp):
         if self.state != "Lobby":
             raise RuntimeError("Can't display lobby; not in lobby state")
         badge.display.fill(1)
-        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        badge.display.text("QuadChess", 0, 0)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
         if (self.is_host):
@@ -338,11 +335,11 @@ class App(badge.BaseApp):
                     self.selected = self.pos.copy()
                     self.draw_selection(self.selected[0], self.selected[1])
                 else:
+                    self.handle_move([self.selected, self.pos])
                     self.erase_selection(self.selected[0], self.selected[1])
                     self.handle_move([self.selected, self.pos])
                     self.send_move([self.selected, self.pos])
                     self.selected = [-1, -1]
-                    self.move_board_to_buffer(self.grid, self.num)
         
         elif self.state == "Lobby":
             if badge.input.get_button(badge.input.Buttons.SW10):
