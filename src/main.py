@@ -217,7 +217,6 @@ class App(badge.BaseApp):
         elif data_str == "join_accepted" and not self.is_host: # received by guest
             if self.state == "Lobby":
                 badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
-                self.state = "Game"
             else:
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
         elif data_str == "join_confirmed" and self.is_host: # received by host
@@ -225,8 +224,25 @@ class App(badge.BaseApp):
                 temp_players = self.players.copy().remove(packet.source)
                 for player in temp_players:
                     badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
+                if (self.players >= 4):
+                    self.state = "Game"
+                    self.num = 1
+                    badge.display.fill(1)
+                    self.move_board_to_buffer(self.grid, self.num)
+                    self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                    badge.display.show()
+                    for player in self.players:
+                        badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
             elif data_str == "join_canceled" and self.is_host:
                 self.players.remove(packet.source)
+        elif data_str.startswith("game_start:") and not self.is_host: # received by guests
+            if self.state == "Lobby" and not self.is_host:
+                self.num = int(data_str.split(":")[1])
+                self.state = "Game"
+                badge.display.fill(1)
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                badge.display.show()
         elif data_str.startswith("player_joined:"): # received by guests already in lobby
             new_player = data_str.split(":")[1]
             if new_player not in self.players:
