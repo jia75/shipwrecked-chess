@@ -92,4 +92,4 @@ class App(badge.BaseApp):
         self.display_home()
 
     def loop(self) -> None:
-        if self.state == "Lobby":
+        pass
