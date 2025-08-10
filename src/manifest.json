@@ -1,5 +1,5 @@
 {
-    "displayName": "chess",
+    "displayName": "Chess",
     "logoPath": "logo.pbm",
     "permissions": ["notifications:write", "rawHardware:write", "radio:write", "uart:write", "contacts:write"],
     "appNumber": 16
