@@ -125,6 +125,7 @@ class App(badge.BaseApp):
         self.grid[sy][sx] = 0
 
         self.move_board_to_buffer(self.grid, self.num)
+        badge.display.show()
     
     def send_move(self, move):
         if self.state != "Game":
