@@ -16,17 +16,6 @@ import utime
 """
 
 class App(badge.BaseApp):
-    def on_open(self) -> None:
-        self.isHost = False
-        self.players = []
-        self.state = "Home" # Home, Game, Lobby
-        self.active_lobby_option = "Create Lobby"
-
-        badge.display.show()
-
-    def loop(self) -> None:
-        pass
-
     def draw_square_to_buffer(x: int, y: int, piece: int) -> None:
         if not piece == -1:
             badge.display.rect(x, y, 15, 15, 0)
@@ -73,7 +62,7 @@ class App(badge.BaseApp):
             else:
                 pass
         elif (not self.isHost and packet.data == "join_accepted".encode('utf-8')):
-            badge.display.show_text("Joined lobby")
+            badge.display.text("Joined lobby", 0, 0)
             self.players.append(packet.source)
             self.state = "Lobby"
         elif packet.data.startswith(b"player_joined:"):
@@ -86,3 +75,21 @@ class App(badge.BaseApp):
         elif packet.data.startswith(b"move:"):
             move = packet.data.decode('utf-8').split(":")[1]
             self.handle_move(packet.source, move)
+    
+    def display_home(self):
+        if self.state != "Home":
+            raise RuntimeError("Can't display home; not in home state")
+        badge.display.fill(1)
+        badge.display.show_text("Create lobby", 20, 10)
+        badge.display.show_text("Join lobby", 20, 60)
+
+    def on_open(self) -> None:
+        self.isHost = False
+        self.players = []
+        self.state = "Home" # Home, Game, Lobby
+
+        badge.display.show()
+        self.display_home()
+
+    def loop(self) -> None:
+        if self.state == "Lobby":
