@@ -210,7 +210,7 @@ class App(badge.BaseApp):
                 self.players.append(packet.source)
                 self.display_lobby()
                 badge.display.show()
-                for player in players:
+                for player in self.players:
                     if player == badge.contacts.my_contact().badge_id:
                         continue
                     utime.sleep(1.5)
