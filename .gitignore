@@ -1,2 +1,9 @@
 bld/*
 .DS_Store
+
+apps
+badge
+data
+ellipticcurve
+fonts
+internal_os

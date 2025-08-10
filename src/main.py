@@ -19,20 +19,21 @@ class App(badge.BaseApp):
     def __init__(self) -> None:
         self.grid = [[-1, -1, -1, 34, 32, 33, 36, 35, 33, 32, 34, -1, -1, -1], 
                      [-1, -1, -1, 31, 31, 31, 31, 31, 31, 31, 31, -1, -1, -1], 
-                     [-1, -1, -1,  0,  0,  0,  0,  0,  0,  0,  0, -1, -1, -1], 
-                     [24, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 34], 
-                     [22, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 32], 
-                     [23, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 33], 
-                     [26, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 35], 
-                     [25, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 36], 
-                     [23, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 33], 
-                     [22, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 32], 
-                     [24, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 34], 
-                     [-1, -1, -1,  0,  0,  0,  0,  0,  0,  0,  0, -1, -1, -1],
+                     [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1], 
+                     [24, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 44], 
+                     [22, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 42], 
+                     [23, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 43], 
+                     [26, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 45], 
+                     [25, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 46], 
+                     [23, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 43], 
+                     [22, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 42], 
+                     [24, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 41, 44], 
+                     [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1],
                      [-1, -1, -1, 11, 11, 11, 11, 11, 11, 11, 11, -1, -1, -1],
                      [-1, -1, -1, 14, 12, 13, 15, 16, 13, 12, 14, -1, -1, -1]]
         self.num = 1
         self.pos = [3, 13]
+        self.oldPos = [3, 13]
         self.selected = [-1, -1]
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
@@ -41,12 +42,35 @@ class App(badge.BaseApp):
         badge.display.rect(x, y, 15, 15, 0)
         if piece == 0:
             return
-        badge.display.nice_text(str(piece%10), x+1,y+1, rot = (piece/10-1)*90)
+        if piece//10 == 1:
+            badge.display.nice_text(str(piece%10), x, y, 18, rot=0)
+        elif piece//10 == 2:
+            badge.display.nice_text(str(piece%10), x+14, y, 18, rot=90)
+        elif piece//10 == 3:
+            badge.display.nice_text(str(piece%10), x+14, y+14, 18, rot=180)
+        elif piece//10 == 4:
+            badge.display.nice_text(str(piece%10), x, y+14, 18, rot=270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
-        for row_index in range(14):
-            for column_index in range(14):
-                self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
+        for column_index in range(14):
+            for row_index in range(14):
+                self.draw_square_to_buffer(row_index*14, column_index*14, board[column_index][row_index])
+
+    def draw_hover(self, x, y, old_x, old_y) -> None:
+        badge.display.rect(old_x*14+1, old_y*14+1, 13, 13, 1)
+        badge.display.rect(x*14+1, y*14+1, 13, 13, 0)
+        self.move_board_to_buffer(self.grid, 1)
+        badge.display.show()
+
+    def draw_selection(self, x, y) -> None:
+        badge.display.fill_rect(x*14+1, y*14+1, 13, 13, 0)
+        self.move_board_to_buffer(self.grid, 1)
+        badge.display.show()
+
+    def erase_selection(self, x, y) -> None:
+        badge.display.fill_rect(x*14+1, y*14+1, 13, 13, 1)
+        self.move_board_to_buffer(self.grid, 1)
+        badge.display.show()
 
     def create_lobby(self) -> None:
         print("Creating lobby")
@@ -236,14 +260,16 @@ class App(badge.BaseApp):
     def on_open(self) -> None:
         self.is_host = False
         self.players = []
-        self.state = "Home" # Home, Game, Lobby
-        self.last_player_size = 0
-        self.display_home()
-        badge.display.show()
+        self.state = "Game" # Home, Game, Lobby
+        # self.display_home()
+        # badge.display.show()
+
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
 
     def loop(self) -> None:
         if self.state == "Home":
-            # 15 is join; 6 is create
             if badge.input.get_button(badge.input.Buttons.SW10):
                 self.join_lobby()
             elif badge.input.get_button(badge.input.Buttons.SW18):
@@ -251,18 +277,36 @@ class App(badge.BaseApp):
         elif self.state == "Game":
             if badge.input.get_button(badge.input.Buttons.SW8):
                 self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
             if badge.input.get_button(badge.input.Buttons.SW4):
                 self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
             if badge.input.get_button(badge.input.Buttons.SW18):
                 self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
             if badge.input.get_button(badge.input.Buttons.SW13):
                 self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
             if badge.input.get_button(badge.input.Buttons.SW5):
                 if self.selected == self.pos:
+                    self.erase_selection(self.selected[0], self.selected[1])
                     self.selected = [-1, -1]
                 elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
-                    self.selected = self.pos
+                    self.selected = self.pos.copy()
+                    self.draw_selection(self.selected[0], self.selected[1])
                 else:
+                    self.erase_selection(self.selected[0], self.selected[1])
                     self.handle_move([self.selected, self.pos])
+                    self.selected = [-1, -1]
+                    self.move_board_to_buffer(self.grid, self.num)
+        
         elif self.state == "Lobby":
             self.display_lobby()
