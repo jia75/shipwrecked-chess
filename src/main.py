@@ -132,7 +132,7 @@ class App(badge.BaseApp):
             if self.state == "Lobby" and self.is_host:
                 self.unsure_players -= 1
                 self.players.append(packet.source)
-                temp_players = self.players.copy().remove(packet.source)
+                # temp_players = self.players.copy().remove(packet.source)
                 for player in temp_players:
                     badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
                 if (self.players >= 4):
@@ -183,14 +183,27 @@ class App(badge.BaseApp):
         if self.state != "Lobby":
             raise RuntimeError("Can't display lobby; not in lobby state")
         badge.display.fill(1)
-        badge.display.text("QuadChess", 0, 0)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
         badge.display.text("<- Start game", 0, 178)
         for i in range(player_count):
-            badge.display.text(str(self.players[i]), 0, 108+i*20)
+            badge.display.nice_text(str(self.players[i]), 0, 108+i*20, font=18)
         if player_count != self.last_player_size: # only refresh if the player count has changed
             self.last_player_size = player_count
+            badge.display.show()
+
+
+    def display_no_badge(self) -> None:
+        badge.display.fill(1)
+        badge.display.text("Dawg you don't have a badge id", 0, 0)
+        badge.display.text("Don't wipe out your config", 0, 88)
+        def display_shrug(self) -> None:
+            shrug = r"""
+            ¯\_()_/¯
+            """
+            badge.display.fill(1)
+            badge.display.nice_text(shrug, 0, 0, font=32)
             badge.display.show()
 
     def on_open(self) -> None:
@@ -212,18 +225,6 @@ class App(badge.BaseApp):
         # badge.display.fill(1)
         # self.move_board_to_buffer(self.grid, self.num)
         # self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-
-    def display_no_badge(self) -> None:
-        badge.display.fill(1)
-        badge.display.text("Dawg you don't have a badge id", 0, 0)
-        badge.display.text("Don't wipe out your config", 0, 88)
-        def display_shrug(self) -> None:
-            shrug = r"""
-            ¯\_()_/¯
-            """
-            badge.display.fill(1)
-            badge.display.nice_text(shrug, 0, 0, font=32)
-            badge.display.show()
 
     def loop(self) -> None:
         if self.state == "NoBadge":
