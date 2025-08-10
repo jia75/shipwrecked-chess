@@ -1,5 +1,4 @@
 import badge
-import utime
 
 """ 
 -1 Forbidden
@@ -89,6 +88,12 @@ class App(badge.BaseApp):
         self.state = "Lobby"
         self.display_lobby()
         badge.display.show()
+
+    def start_game(self) -> None:
+        self.state = "Game"
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
         
     def handle_move(self, move) -> None:
         sx, sy = move[0]
@@ -101,108 +106,8 @@ class App(badge.BaseApp):
         if dest == -1 or (dest > 0 and dest // 10 == self.num):
             return
 
-        if ptype == 1:
-            if tx == sx - 1:
-                if ty == sy and self.grid[ty][tx] == 0:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-                elif (ty == sy - 1 or ty == sy + 1) and self.grid[ty][tx] > 0:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 2:
-            dx = abs(tx - sx)
-            dy = abs(ty - sy)
-            if (dx == 1 and dy == 2) or (dx == 2 and dy == 1):
-                self.grid[ty][tx] = piece
-                self.grid[sy][sx] = 0
-
-        elif ptype == 3:
-            if abs(tx - sx) == abs(ty - sy) and tx != sx:
-                stepx = 1 if tx > sx else -1
-                stepy = 1 if ty > sy else -1
-                x = sx + stepx
-                y = sy + stepy
-                clear = True
-                while x != tx and y != ty:
-                    if self.grid[y][x] != 0:
-                        clear = False
-                        break
-                    x += stepx
-                    y += stepy
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 4:
-            if sx == tx or sy == ty:
-                clear = True
-                if sx == tx:
-                    stepy = 1 if ty > sy else -1
-                    y = sy + stepy
-                    while y != ty:
-                        if self.grid[y][sx] != 0:
-                            clear = False
-                            break
-                        y += stepy
-                else:
-                    stepx = 1 if tx > sx else -1
-                    x = sx + stepx
-                    while x != tx:
-                        if self.grid[sy][x] != 0:
-                            clear = False
-                            break
-                        x += stepx
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 5:
-            dx = tx - sx
-            dy = ty - sy
-            if abs(dx) == abs(dy) and dx != 0:
-                stepx = 1 if dx > 0 else -1
-                stepy = 1 if dy > 0 else -1
-                x = sx + stepx
-                y = sy + stepy
-                clear = True
-                while x != tx and y != ty:
-                    if self.grid[y][x] != 0:
-                        clear = False
-                        break
-                    x += stepx
-                    y += stepy
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-            elif sx == tx or sy == ty:
-                clear = True
-                if sx == tx:
-                    stepy = 1 if ty > sy else -1
-                    y = sy + stepy
-                    while y != ty:
-                        if self.grid[y][sx] != 0:
-                            clear = False
-                            break
-                        y += stepy
-                else:
-                    stepx = 1 if tx > sx else -1
-                    x = sx + stepx
-                    while x != tx:
-                        if self.grid[sy][x] != 0:
-                            clear = False
-                            break
-                        x += stepx
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 6:
-            dx = abs(tx - sx)
-            dy = abs(ty - sy)
-            if dx <= 1 and dy <= 1 and not (dx == 0 and dy == 0):
-                self.grid[ty][tx] = piece
-                self.grid[sy][sx] = 0
+        self.grid[ty][tx] = piece
+        self.grid[sy][sx] = 0
 
         self.send_move(move)
     
@@ -228,7 +133,7 @@ class App(badge.BaseApp):
             if self.state == "Lobby" and self.is_host:
                 self.unsure_players -= 1
                 self.players.append(packet.source)
-                temp_players = self.players.copy().remove(packet.source)
+                # temp_players = self.players.copy().remove(packet.source)
                 for player in temp_players:
                     badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
                 if (self.players >= 4):
@@ -279,13 +184,27 @@ class App(badge.BaseApp):
         if self.state != "Lobby":
             raise RuntimeError("Can't display lobby; not in lobby state")
         badge.display.fill(1)
-        badge.display.text("QuadChess", 0, 0)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
+        badge.display.text("<- Start game", 0, 178)
         for i in range(player_count):
-            badge.display.text(str(self.players[i]), 0, 108+i*20)
+            badge.display.nice_text(str(self.players[i]), 0, 108+i*20, font=18)
         if player_count != self.last_player_size: # only refresh if the player count has changed
             self.last_player_size = player_count
+            badge.display.show()
+
+
+    def display_no_badge(self) -> None:
+        badge.display.fill(1)
+        badge.display.text("Dawg you don't have a badge id", 0, 0)
+        badge.display.text("Don't wipe out your config", 0, 88)
+        def display_shrug(self) -> None:
+            shrug = r"""
+            ¯\_()_/¯
+            """
+            badge.display.fill(1)
+            badge.display.nice_text(shrug, 0, 0, font=32)
             badge.display.show()
 
     def on_open(self) -> None:
@@ -307,18 +226,6 @@ class App(badge.BaseApp):
         # badge.display.fill(1)
         # self.move_board_to_buffer(self.grid, self.num)
         # self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-
-    def display_no_badge(self) -> None:
-        badge.display.fill(1)
-        badge.display.text("Dawg you don't have a badge id", 0, 0)
-        badge.display.text("Don't wipe out your config", 0, 88)
-        def display_shrug(self) -> None:
-            shrug = r"""
-            ¯\_()_/¯
-            """
-            badge.display.fill(1)
-            badge.display.nice_text(shrug, 0, 0, font=32)
-            badge.display.show()
 
     def loop(self) -> None:
         if self.state == "NoBadge":
@@ -364,3 +271,5 @@ class App(badge.BaseApp):
         
         elif self.state == "Lobby":
             self.display_lobby()
+            if badge.input.get_button(badge.input.Buttons.SW10):
+                self.start_game()
