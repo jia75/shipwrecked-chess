@@ -80,12 +80,16 @@ class App(badge.BaseApp):
         self.state = "Lobby"
         self.connected_to_lobby = True
 
+        self.display_lobby()
+        badge.display.show()
+
     def join_lobby(self) -> None:
         # 4023
         if self.is_host:
             raise RuntimeError("Cannot join lobby as host")
         badge.radio.send_packet(0xffff, "join_request".encode('utf-8'))
         self.state = "Lobby"
+
         self.display_lobby()
         badge.display.show()
         
@@ -219,8 +223,12 @@ class App(badge.BaseApp):
                 self.unsure_players += 1
         elif data_str == "join_accepted" and not self.is_host and not self.connected_to_lobby: # received by guest
             if self.state == "Lobby":
+                utime.sleep(1500)
                 badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
                 self.connected_to_lobby = True
+
+                self.display_lobby()
+                badge.display.show()
             else:
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
         elif data_str == "join_confirmed" and self.is_host: # received by host
@@ -228,9 +236,11 @@ class App(badge.BaseApp):
                 # print([0][3])
                 self.unsure_players -= 1
                 self.players.append(packet.source)
+
                 self.display_lobby()
                 badge.display.show()
                 for player in players:
+                    utime.sleep(1500)
                     badge.radio.send_packet(player, f"player_joined:{str(packet.source)}".encode('utf-8')) # tell everyone there's a new player
                 if (len(self.players) >= 4):
                     self.state = "Game"
@@ -241,8 +251,6 @@ class App(badge.BaseApp):
                     badge.display.show()
                     for player in self.players:
                         badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
-            elif data_str == "join_canceled" and self.is_host:
-                self.unsure_players -= 1
         elif data_str.startswith("game_start:") and not self.is_host: # received by guests
             if self.state == "Lobby" and not self.is_host:
                 self.num = int(data_str.split(":")[1])
@@ -253,6 +261,7 @@ class App(badge.BaseApp):
                 badge.display.show()
         elif data_str == "join_canceled" and self.is_host:
             self.players.remove(packet.source)
+            self.unsure_players -= 1
         elif data_str.startswith("player_joined:"): # received by guests already in lobby
             new_player = int(data_str.split(":")[1])
             if new_player not in self.players:
@@ -286,9 +295,6 @@ class App(badge.BaseApp):
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
         for i in range(player_count):
             badge.display.text(str(self.players[i]), 0, 108+i*20)
-        if player_count != self.last_player_size: # only refresh if the player count has changed
-            self.last_player_size = player_count
-            badge.display.show()
 
 
     def display_no_badge(self) -> None:
@@ -366,4 +372,4 @@ class App(badge.BaseApp):
                     self.move_board_to_buffer(self.grid, self.num)
         
         elif self.state == "Lobby":
-            self.display_lobby()
+            pass
