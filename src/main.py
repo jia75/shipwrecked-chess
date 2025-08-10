@@ -17,12 +17,31 @@ class App(badge.BaseApp):
                      [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1],
                      [-1, -1, -1, 11, 11, 11, 11, 11, 11, 11, 11, -1, -1, -1],
                      [-1, -1, -1, 14, 12, 13, 15, 16, 13, 12, 14, -1, -1, -1]]
-        self.turn = 1
+        self.num = 1
         self.pos = [3, 13]
         self.selected = [-1, -1]
 
-    def handle_move(self, move):
-        pass
+    def handle_move(self, move) -> None:
+        if self.grid[move[1][1]][move[1][0]] == -1 or self.grid[move[1][1]][move[1][0]] // 10 == self.num:
+            return
+        if self.grid[move[0][1]][move[0][0]] % 10 == 1:
+            if self.move[1][0] == self.move[0][0] - 1:
+                if self.move[1][1] == self.move[0][1] and self.grid[self.move[1][1]][self.move[1][0]] == 0:
+                    self.grid[self.move[1][1]][self.move[1][0]] = self.num * 10 + 1
+                    self.grid[self.move[0][1]][self.move[0][0]] = 0
+                elif (self.move[1][1] == self.move[0][1] - 1 or self.move[1][1] == self.move[0][1] + 1) and self.grid[self.move[1][1]][self.move[1][0]] > 0:
+                    self.grid[self.move[1][1]][self.move[1][0]] = self.num * 10 + 1
+                    self.grid[self.move[0][1]][self.move[0][0]] = 0
+        elif self.grid[move[0][1]][move[0][0]] % 10 == 2:
+            pass
+        elif self.grid[move[0][1]][move[0][0]] % 10 == 3:
+            pass
+        elif self.grid[move[0][1]][move[0][0]] % 10 == 4:
+            pass
+        elif self.grid[move[0][1]][move[0][0]] % 10 == 5:
+            pass
+        elif self.grid[move[0][1]][move[0][0]] % 10 == 6:
+            pass
 
     def on_open(self) -> None:
         self.isHost = False
@@ -43,7 +62,7 @@ class App(badge.BaseApp):
         if badge.input.get_button(badge.input.Buttons.SW5):
             if self.selected == self.pos:
                 self.selected = [-1, -1]
-            elif self.selected == [-1, -1]:
+            elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
                 self.selected = self.pos
             else:
                 self.handle_move([self.selected, self.pos])
