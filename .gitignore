@@ -1,4 +1,5 @@
 bld/
+.DS_Store
 
 apps
 badge
