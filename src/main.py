@@ -85,6 +85,12 @@ class App(badge.BaseApp):
             raise RuntimeError("Cannot join lobby as host")
         badge.radio.send_packet(0xffff, "join_request".encode('utf-8'))
         self.state = "Lobby"
+
+    def start_game(self) -> None:
+        self.state = "Game"
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
         
     def handle_move(self, move) -> None:
         sx, sy = move[0]
@@ -154,6 +160,7 @@ class App(badge.BaseApp):
         badge.display.text("QuadChess", 0, 0)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
+        badge.display.text("<- Start game", 0, 178)
         for i in range(player_count):
             badge.display.text(str(self.players[i]), 0, 108+i*20)
         if player_count != self.last_player_size: # only refresh if the player count has changed
@@ -167,10 +174,6 @@ class App(badge.BaseApp):
         self.last_player_size = 0
         self.display_home()
         badge.display.show()
-
-        # badge.display.fill(1)
-        # self.move_board_to_buffer(self.grid, self.num)
-        # self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
 
     def loop(self) -> None:
         if self.state == "Home":
@@ -214,3 +217,5 @@ class App(badge.BaseApp):
         
         elif self.state == "Lobby":
             self.display_lobby()
+            if badge.input.get_button(badge.input.Buttons.SW10):
+                self.start_game()
