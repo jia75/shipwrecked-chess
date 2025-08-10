@@ -35,36 +35,7 @@ class App(badge.BaseApp):
         self.pos = [3, 13]
         self.selected = [-1, -1]
 
-    def on_open(self) -> None:
-        example_board = [[0]*14 for _ in range(14)]
-        example_board[3][6] = -1
-        badge.display.fill(1)
-        move_board_to_buffer(example_board, 1)
-        badge.display.show()
-        self.isHost = False
-        self.players = []
-        self.state = "Home" # Home, Game, Lobby
-
-    def loop(self) -> None:
-        if self.turn != 1:
-            return
-        if badge.input.get_button(badge.input.Buttons.SW8):
-            self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
-        if badge.input.get_button(badge.input.Buttons.SW4):
-            self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
-        if badge.input.get_button(badge.input.Buttons.SW18):
-            self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
-        if badge.input.get_button(badge.input.Buttons.SW13):
-            self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
-        if badge.input.get_button(badge.input.Buttons.SW5):
-            if self.selected == self.pos:
-                self.selected = [-1, -1]
-            elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
-                self.selected = self.pos
-            else:
-                self.handle_move([self.selected, self.pos])
-
-    def draw_square_to_buffer(x: int, y: int, piece: int) -> None:
+    def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if not piece == -1:
             badge.display.rect(x, y, 15, 15, 0)
             return
@@ -72,10 +43,10 @@ class App(badge.BaseApp):
             return
         badge.display.nice_text(str(piece%10), x+1,y+1, rot = (piece/10-1)*90)
 
-    def move_board_to_buffer(board: List[List[int]], player_number: int) -> None:
+    def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for row_index in range(14):
             for column_index in range(14):
-                draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
+                self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
 
     def create_lobby(self) -> None:
         self.isHost = True
@@ -132,6 +103,7 @@ class App(badge.BaseApp):
                 if clear:
                     self.grid[ty][tx] = piece
                     self.grid[sy][sx] = 0
+
         elif ptype == 4:
             if sx == tx or sy == ty:
                 clear = True
@@ -154,6 +126,7 @@ class App(badge.BaseApp):
                 if clear:
                     self.grid[ty][tx] = piece
                     self.grid[sy][sx] = 0
+
         elif ptype == 5:
             dx = tx - sx
             dy = ty - sy
@@ -193,6 +166,7 @@ class App(badge.BaseApp):
                 if clear:
                     self.grid[ty][tx] = piece
                     self.grid[sy][sx] = 0
+
         elif ptype == 6:
             dx = abs(tx - sx)
             dy = abs(ty - sy)
@@ -218,7 +192,7 @@ class App(badge.BaseApp):
             else:
                 pass
         elif (not self.isHost and packet.data == "join_accepted".encode('utf-8')):
-            badge.display.show_text("Joined lobby")
+            badge.display.text("Joined lobby", 0, 0)
             self.players.append(packet.source)
             self.state = "Lobby"
         elif packet.data.startswith(b"player_joined:"):
@@ -231,3 +205,38 @@ class App(badge.BaseApp):
         elif packet.data.startswith(b"move:"):
             move = packet.data.decode('utf-8').split(":")[1]
             self.handle_move(packet.source, move)
+    
+    def display_home(self):
+        if self.state != "Home":
+            raise RuntimeError("Can't display home; not in home state")
+        badge.display.fill(1)
+        badge.display.nice_text("Create lobby", 20, 10, 18)
+        badge.display.nice_text("Join lobby", 20, 60, 18)
+
+    def on_open(self) -> None:
+        # self.isHost = False
+        # self.players = []
+        # self.state = "Home" # Home, Game, Lobby
+
+        # badge.display.show()
+        # self.display_home()
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        badge.display.show()
+
+    def loop(self) -> None:
+        if badge.input.get_button(badge.input.Buttons.SW8):
+            self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
+        if badge.input.get_button(badge.input.Buttons.SW4):
+            self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
+        if badge.input.get_button(badge.input.Buttons.SW18):
+            self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
+        if badge.input.get_button(badge.input.Buttons.SW13):
+            self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
+        if badge.input.get_button(badge.input.Buttons.SW5):
+            if self.selected == self.pos:
+                self.selected = [-1, -1]
+            elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
+                self.selected = self.pos
+            else:
+                self.handle_move([self.selected, self.pos])
