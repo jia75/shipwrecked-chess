@@ -19,16 +19,16 @@ class App(badge.BaseApp):
     def __init__(self) -> None:
         self.grid = [[-1, -1, -1, 34, 32, 33, 36, 35, 33, 32, 34, -1, -1, -1], 
                      [-1, -1, -1, 31, 31, 31, 31, 31, 31, 31, 31, -1, -1, -1], 
-                     [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1], 
-                     [24, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 34], 
-                     [22, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 32], 
-                     [23, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 33], 
-                     [26, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 35], 
-                     [25, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 36], 
-                     [23, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 33], 
-                     [22, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 32], 
-                     [24, 21, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 31, 34], 
-                     [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1],
+                     [-1, -1, -1,  0,  0,  0,  0,  0,  0,  0,  0, -1, -1, -1], 
+                     [24, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 34], 
+                     [22, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 32], 
+                     [23, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 33], 
+                     [26, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 35], 
+                     [25, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 36], 
+                     [23, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 33], 
+                     [22, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 32], 
+                     [24, 21,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, 31, 34], 
+                     [-1, -1, -1,  0,  0,  0,  0,  0,  0,  0,  0, -1, -1, -1],
                      [-1, -1, -1, 11, 11, 11, 11, 11, 11, 11, 11, -1, -1, -1],
                      [-1, -1, -1, 14, 12, 13, 15, 16, 13, 12, 14, -1, -1, -1]]
         self.num = 1
@@ -53,11 +53,11 @@ class App(badge.BaseApp):
         self.players = [badge.contacts.my_contact()]
         self.state = "Lobby"
 
-    def join_lobby(self, hostId) -> None:
-        # 1321
+    def join_lobby(self) -> None:
+        # 4023
         if self.isHost:
             raise RuntimeError("Cannot join lobby as host")
-        badge.radio.send_packet(hostId, "join_request".encode('utf-8'))
+        badge.radio.send_packet(0x362a, "join_request".encode('utf-8'))
         self.state = "Lobby"
         
     def handle_move(self, move) -> None:
@@ -181,6 +181,17 @@ class App(badge.BaseApp):
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
+        if packet.data == "join_request".encode('utf-8'):
+            pass
+        elif packet.data == "join_accepted".encode('utf-8'):
+            pass
+        elif packet.data.startswith("player_joined:".encode('utf-8')):
+            pass
+        elif packet.data.startswith("move:".encode('utf-8')):
+            pass
+
+        return
+        
         if (self.isHost and packet.data == "join_request".encode('utf-8') and self.state == "Lobby"):
             new_player = packet.source
             if new_player not in self.players:
@@ -211,23 +222,23 @@ class App(badge.BaseApp):
             raise RuntimeError("Can't display home; not in home state")
         badge.display.fill(1)
         badge.display.nice_text("QuadChess", 0, 0, font=32)
-        badge.display.text("<- Create lobby", 0, 80)
-        badge.display.text("<- Join lobby", 0, 140)
+        badge.display.text("<- Create lobby", 0, 88)
+        badge.display.text("<- Join lobby", 0, 178)
+
 
     def on_open(self) -> None:
-        # self.isHost = False
-        # self.players = []
-        # self.state = "Home" # Home, Game, Lobby
+        self.isHost = False
+        self.players = []
+        self.state = "Home" # Home, Game, Lobby
         self.display_home()
         badge.display.show()
 
     def loop(self) -> None:
         if self.state == "Home":
             # 15 is join; 6 is create
-            if badge.input.get_button(15):
-                pass
-                # self.join_lobby()
-            elif badge.input.get_button(6):
+            if badge.input.get_button(badge.input.Buttons.SW10):
+                self.join_lobby()
+            elif badge.input.get_button(badge.input.Buttons.SW18):
                 self.create_lobby()
         elif self.state == "Game":
             if badge.input.get_button(badge.input.Buttons.SW8):
