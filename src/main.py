@@ -17,14 +17,12 @@ import utime
 
 class App(badge.BaseApp):
     def on_open(self) -> None:
-        example_board = [[0]*14 for _ in range(14)]
-        example_board[3][6] = -1
-        badge.display.fill(1)
-        move_board_to_buffer(example_board, 1)
-        badge.display.show()
         self.isHost = False
         self.players = []
         self.state = "Home" # Home, Game, Lobby
+        self.active_lobby_option = "Create Lobby"
+
+        badge.display.show()
 
     def loop(self) -> None:
         pass
@@ -40,7 +38,7 @@ class App(badge.BaseApp):
     def move_board_to_buffer(board: List[List[int]], player_number: int) -> None:
         for row_index in range(14):
             for column_index in range(14):
-                draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
+                self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
 
     def create_lobby(self) -> None:
         self.isHost = True
