@@ -35,6 +35,7 @@ class App(badge.BaseApp):
         self.pos = [3, 13]
         self.oldPos = [3, 13]
         self.selected = [-1, -1]
+        self.last_player_size = 0
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if piece == -1:
@@ -208,29 +209,31 @@ class App(badge.BaseApp):
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
-        if packet.data == "join_request".encode('utf-8'): # received by host
+        data_str = packet.data.decode('utf-8')
+        if data_str == "join_request": # received by host
             if self.state == "Lobby" and self.is_host and len(self.players) < 4:
                 badge.radio.send_packet(packet.source, f"join_accepted".encode('utf-8'))
                 self.players.append("")
-        elif packet.data == "join_accepted".encode('utf-8') and not self.is_host: # received by guest
+        elif data_str == "join_accepted" and not self.is_host: # received by guest
             if self.state == "Lobby":
                 badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
                 self.state = "Game"
             else:
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
-        elif packet.data == "join_confirmed".encode('utf-8') and self.is_host: # received by host
+        elif data_str == "join_confirmed" and self.is_host: # received by host
             if self.state == "Lobby" and self.is_host:
-                for player in self.players.remove(packet.source):
+                temp_players = self.players.copy().remove(packet.source)
+                for player in temp_players:
                     badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
-            elif packet.data == "join_canceled".encode('utf-8') and self.is_host:
+            elif data_str == "join_canceled" and self.is_host:
                 self.players.remove(packet.source)
-        elif packet.data.startswith("player_joined:".encode('utf-8')): # received by guests already in lobby
-            new_player = packet.data.decode('utf-8').split(":")[1]
+        elif data_str.startswith("player_joined:"): # received by guests already in lobby
+            new_player = data_str.split(":")[1]
             if new_player not in self.players:
                 self.players.append(new_player)
-        elif packet.data.startswith("move:".encode('utf-8')):
+        elif data_str.startswith("move:"):
             try:
-                move_data = packet.data.decode('utf-8').split(":", 1)[1]
+                move_data = data_str.split(":", 1)[1]
                 move = eval(move_data)
                 self.handle_move(move)
             except ValueError as e:
