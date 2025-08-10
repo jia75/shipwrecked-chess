@@ -55,13 +55,13 @@ class App(badge.BaseApp):
         ptype = piece % 10
         letter = piece_mappings.get(ptype, "?")
         if piece//10 == 1:
-            badge.display.nice_text(letter, x, y, 18, rot=0)
+            badge.display.nice_text(letter, x+2, y, 18, rot=0)
         elif piece//10 == 2:
-            badge.display.nice_text(letter, x+14, y, 18, rot=90)
+            badge.display.nice_text(letter, x+16, y, 18, rot=90)
         elif piece//10 == 3:
-            badge.display.nice_text(letter, x+14, y+14, 18, rot=180)
+            badge.display.nice_text(letter, x+16, y+14, 18, rot=180)
         elif piece//10 == 4:
-            badge.display.nice_text(letter, x, y+14, 18, rot=270)
+            badge.display.nice_text(letter, x+2, y+14, 18, rot=270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for column_index in range(14):
