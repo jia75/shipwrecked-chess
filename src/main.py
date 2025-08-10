@@ -49,8 +49,10 @@ class App(badge.BaseApp):
                 self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
 
     def create_lobby(self) -> None:
+        print("Creating lobby")
         self.is_host = True
-        self.players = [badge.contacts.my_contact()]
+        self.players = [badge.contacts.my_contact().badge_id] # Badge ID for now, as when queuing, we only get the ID
+        self.last_player_size = 0
         self.state = "Lobby"
 
     def join_lobby(self) -> None:
@@ -193,11 +195,14 @@ class App(badge.BaseApp):
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
         elif packet.data == "join_confirmed".encode('utf-8') and self.is_host: # received by host
             if self.state == "Lobby" and self.is_host:
-                pass
+                for player in self.players.remove(packet.source):
+                    badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
             elif packet.data == "join_canceled".encode('utf-8') and self.is_host:
                 self.players.remove(packet.source)
-        elif packet.data.startswith("player_joined:".encode('utf-8')):
-            pass
+        elif packet.data.startswith("player_joined:".encode('utf-8')): # received by guests already in lobby
+            new_player = packet.data.decode('utf-8').split(":")[1]
+            if new_player not in self.players:
+                self.players.append(new_player)
         elif packet.data.startswith("move:".encode('utf-8')):
             pass
 
@@ -237,14 +242,15 @@ class App(badge.BaseApp):
         badge.display.text("<- Join lobby", 0, 178)
 
     def display_lobby(self) -> None:
-        if self.state != "Home":
-            raise RuntimeError("Can't display home; not in \"home\" state")
         badge.display.fill(1)
         badge.display.nice_text("QuadChess", 0, 0, font=32)
         player_count = len(self.players)
-        badge.display.text("Lobby ("+player_count+"/4)", 0, 88)
+        badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
         for i in range(player_count):
-            badge.display.text(str(players[i]), 0, 108+i*20)
+            badge.display.text(str(self.players[i]), 0, 108+i*20)
+        if player_count != self.last_player_size: # only refresh if the player count has changed
+            self.last_player_size = player_count
+            badge.display.show()
 
     def on_open(self) -> None:
         self.is_host = False
@@ -277,4 +283,4 @@ class App(badge.BaseApp):
                 else:
                     self.handle_move([self.selected, self.pos])
         elif self.state == "Lobby":
-            pass
+            self.display_lobby()
