@@ -124,6 +124,7 @@ class App(badge.BaseApp):
         self.grid[ty][tx] = self.grid[sy][sx]
         self.grid[sy][sx] = 0
 
+        badge.display.fill(1)
         self.move_board_to_buffer(self.grid, self.num)
         badge.display.show()
     
