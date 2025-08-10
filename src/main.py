@@ -22,25 +22,39 @@ class App(badge.BaseApp):
         self.selected = [-1, -1]
 
     def handle_move(self, move) -> None:
-        if self.grid[move[1][1]][move[1][0]] == -1 or self.grid[move[1][1]][move[1][0]] // 10 == self.num:
+        sx, sy = move[0]
+        tx, ty = move[1]
+
+        piece = self.grid[sy][sx]
+        dest = self.grid[ty][tx]
+        ptype = piece % 10
+
+        if dest == -1 or (dest > 0 and dest // 10 == self.num):
             return
-        if self.grid[move[0][1]][move[0][0]] % 10 == 1:
-            if self.move[1][0] == self.move[0][0] - 1:
-                if self.move[1][1] == self.move[0][1] and self.grid[self.move[1][1]][self.move[1][0]] == 0:
-                    self.grid[self.move[1][1]][self.move[1][0]] = self.num * 10 + 1
-                    self.grid[self.move[0][1]][self.move[0][0]] = 0
-                elif (self.move[1][1] == self.move[0][1] - 1 or self.move[1][1] == self.move[0][1] + 1) and self.grid[self.move[1][1]][self.move[1][0]] > 0:
-                    self.grid[self.move[1][1]][self.move[1][0]] = self.num * 10 + 1
-                    self.grid[self.move[0][1]][self.move[0][0]] = 0
-        elif self.grid[move[0][1]][move[0][0]] % 10 == 2:
+
+        if ptype == 1:
+            if tx == sx - 1:
+                if ty == sy and self.grid[ty][tx] == 0:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
+                elif (ty == sy - 1 or ty == sy + 1) and self.grid[ty][tx] > 0:
+                    self.grid[ty][tx] = piece
+                    self.grid[sy][sx] = 0
+
+        elif ptype == 2:
+            dx = abs(tx - sx)
+            dy = abs(ty - sy)
+            if (dx == 1 and dy == 2) or (dx == 2 and dy == 1):
+                self.grid[ty][tx] = piece
+                self.grid[sy][sx] = 0
+
+        elif ptype == 3:
             pass
-        elif self.grid[move[0][1]][move[0][0]] % 10 == 3:
+        elif ptype == 4:
             pass
-        elif self.grid[move[0][1]][move[0][0]] % 10 == 4:
+        elif ptype == 5:
             pass
-        elif self.grid[move[0][1]][move[0][0]] % 10 == 5:
-            pass
-        elif self.grid[move[0][1]][move[0][0]] % 10 == 6:
+        elif ptype == 6:
             pass
 
     def on_open(self) -> None:
