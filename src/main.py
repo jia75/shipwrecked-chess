@@ -55,13 +55,13 @@ class App(badge.BaseApp):
         ptype = piece % 10
         letter = piece_mappings.get(ptype, "?")
         if piece//10 == 1:
-            badge.display.nice_text(letter, x, y, 18, rot=0)
+            badge.display.nice_text(letter, x+2, y, 18, rot=0)
         elif piece//10 == 2:
-            badge.display.nice_text(letter, x+14, y, 18, rot=90)
+            badge.display.nice_text(letter, x+16, y, 18, rot=90)
         elif piece//10 == 3:
-            badge.display.nice_text(letter, x+14, y+14, 18, rot=180)
+            badge.display.nice_text(letter, x+16, y+14, 18, rot=180)
         elif piece//10 == 4:
-            badge.display.nice_text(letter, x, y+14, 18, rot=270)
+            badge.display.nice_text(letter, x+2, y+14, 18, rot=270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for column_index in range(14):
@@ -145,7 +145,7 @@ class App(badge.BaseApp):
                 self.unsure_players += 1
         elif data_str == "join_accepted" and not self.is_host and not self.connected_to_lobby: # received by guest
             if self.state == "Lobby":
-                utime.sleep(1500)
+                utime.sleep(1.5)
                 badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
                 self.connected_to_lobby = True
 
@@ -163,7 +163,7 @@ class App(badge.BaseApp):
                 for player in players:
                     if player == badge.contacts.my_contact().badge_id:
                         continue
-                    utime.sleep(1500)
+                    utime.sleep(1.5)
                     badge.radio.send_packet(player, f"player_joined:{str(packet.source)}".encode('utf-8')) # tell everyone there's a new player
                 if (len(self.players) >= 4):
                     self.state = "Game"
