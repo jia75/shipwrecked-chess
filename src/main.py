@@ -33,6 +33,7 @@ class App(badge.BaseApp):
                      [-1, -1, -1, 14, 12, 13, 15, 16, 13, 12, 14, -1, -1, -1]]
         self.num = 1
         self.pos = [3, 13]
+        self.oldPos = [3, 13]
         self.selected = [-1, -1]
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
@@ -47,6 +48,11 @@ class App(badge.BaseApp):
         for row_index in range(14):
             for column_index in range(14):
                 self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
+
+    def draw_hover(self, x, y, old_x, old_y) -> None:
+        badge.display.rect(old_x*14+1, old_y*14+1, 13, 13, 1)
+        badge.display.rect(x*14+1, y*14+1, 13, 13, 0)
+        badge.display.show()
 
     def create_lobby(self) -> None:
         self.isHost = True
@@ -222,17 +228,29 @@ class App(badge.BaseApp):
         # self.display_home()
         badge.display.fill(1)
         self.move_board_to_buffer(self.grid, self.num)
-        badge.display.show()
+        self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
 
     def loop(self) -> None:
         if badge.input.get_button(badge.input.Buttons.SW8):
             self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
+            self.move_board_to_buffer(self.grid, self.num)
+            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+            self.oldPos = self.pos.copy()
         if badge.input.get_button(badge.input.Buttons.SW4):
             self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
+            self.move_board_to_buffer(self.grid, self.num)
+            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+            self.oldPos = self.pos.copy()
         if badge.input.get_button(badge.input.Buttons.SW18):
             self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
+            self.move_board_to_buffer(self.grid, self.num)
+            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+            self.oldPos = self.pos.copy()
         if badge.input.get_button(badge.input.Buttons.SW13):
             self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
+            self.move_board_to_buffer(self.grid, self.num)
+            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+            self.oldPos = self.pos.copy()
         if badge.input.get_button(badge.input.Buttons.SW5):
             if self.selected == self.pos:
                 self.selected = [-1, -1]
@@ -240,3 +258,4 @@ class App(badge.BaseApp):
                 self.selected = self.pos
             else:
                 self.handle_move([self.selected, self.pos])
+                self.move_board_to_buffer(self.grid, self.num)
