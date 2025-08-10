@@ -1,4 +1,4 @@
-bld/
+bld/*
 .DS_Store
 
 apps

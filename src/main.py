@@ -73,15 +73,17 @@ class App(badge.BaseApp):
         badge.display.show()
 
     def create_lobby(self) -> None:
-        self.isHost = True
-        self.players = [badge.contacts.my_contact()]
+        print("Creating lobby")
+        self.is_host = True
+        self.players = [badge.contacts.my_contact().badge_id] # Badge ID for now, as when queuing, we only get the ID
+        self.last_player_size = 0
         self.state = "Lobby"
 
-    def join_lobby(self, hostId) -> None:
-        # 1321
-        if self.isHost:
+    def join_lobby(self) -> None:
+        # 4023
+        if self.is_host:
             raise RuntimeError("Cannot join lobby as host")
-        badge.radio.send_packet(hostId, "join_request".encode('utf-8'))
+        badge.radio.send_packet(0xffff, "join_request".encode('utf-8'))
         self.state = "Lobby"
         
     def handle_move(self, move) -> None:
@@ -197,6 +199,8 @@ class App(badge.BaseApp):
             if dx <= 1 and dy <= 1 and not (dx == 0 and dy == 0):
                 self.grid[ty][tx] = piece
                 self.grid[sy][sx] = 0
+
+        self.send_move(move)
     
     def send_move(self, move):
         if self.state != "Game":
@@ -205,79 +209,105 @@ class App(badge.BaseApp):
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
-        if (self.isHost and packet.data == "join_request".encode('utf-8')):
-            new_player = packet.source
-            if new_player not in self.players:
-                self.players.append(new_player)
-                badge.radio.send_packet(new_player, f"join_accepted:{','.join(self.players)}".encode('utf-8'))
-                badge.display.show_text(f"Player {new_player} joined")
-                for player in self.players.remove(new_player):
-                    badge.radio.send_packet(player, f"player_joined:{new_player}".encode('utf-8'))
+        if packet.data == "join_request".encode('utf-8'): # received by host
+            if self.state == "Lobby" and self.is_host and len(self.players) < 4:
+                badge.radio.send_packet(packet.source, f"join_accepted".encode('utf-8'))
+                self.players.append("")
+        elif packet.data == "join_accepted".encode('utf-8') and not self.is_host: # received by guest
+            if self.state == "Lobby":
+                badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
+                self.state = "Game"
             else:
-                pass
-        elif (not self.isHost and packet.data == "join_accepted".encode('utf-8')):
-            badge.display.text("Joined lobby", 0, 0)
-            self.players.append(packet.source)
-            self.state = "Lobby"
-        elif packet.data.startswith(b"player_joined:"):
+                badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
+        elif packet.data == "join_confirmed".encode('utf-8') and self.is_host: # received by host
+            if self.state == "Lobby" and self.is_host:
+                for player in self.players.remove(packet.source):
+                    badge.radio.send_packet(player, f"player_joined:{packet.source}".encode('utf-8')) # tell everyone there's a new player
+            elif packet.data == "join_canceled".encode('utf-8') and self.is_host:
+                self.players.remove(packet.source)
+        elif packet.data.startswith("player_joined:".encode('utf-8')): # received by guests already in lobby
             new_player = packet.data.decode('utf-8').split(":")[1]
             if new_player not in self.players:
                 self.players.append(new_player)
-        elif packet.data.startswith(b"join_accepted:"):
-            players_list = packet.data.decode('utf-8').split(":")[1]
-            self.players = players_list.split(",")
-        elif packet.data.startswith(b"move:"):
-            move = packet.data.decode('utf-8').split(":")[1]
-            self.handle_move(packet.source, move)
+        elif packet.data.startswith("move:".encode('utf-8')):
+            try:
+                move_data = packet.data.decode('utf-8').split(":", 1)[1]
+                move = eval(move_data)
+                self.handle_move(move)
+            except ValueError as e:
+                raise RuntimeError(f"Invalid move data received: {e}")
+
+        return
     
-    def display_home(self):
+    def display_home(self) -> None:
         if self.state != "Home":
             raise RuntimeError("Can't display home; not in home state")
         badge.display.fill(1)
-        badge.display.nice_text("Create lobby", 20, 10, 18)
-        badge.display.nice_text("Join lobby", 20, 60, 18)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        badge.display.text("<- Create lobby", 0, 88)
+        badge.display.text("<- Join lobby", 0, 178)
+
+    def display_lobby(self) -> None:
+        badge.display.fill(1)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        player_count = len(self.players)
+        badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
+        for i in range(player_count):
+            badge.display.text(str(self.players[i]), 0, 108+i*20)
+        if player_count != self.last_player_size: # only refresh if the player count has changed
+            self.last_player_size = player_count
+            badge.display.show()
 
     def on_open(self) -> None:
-        # self.isHost = False
-        # self.players = []
-        # self.state = "Home" # Home, Game, Lobby
-
-        # badge.display.show()
+        self.is_host = False
+        self.players = []
+        self.state = "Game" # Home, Game, Lobby
         # self.display_home()
+        # badge.display.show()
+
         badge.display.fill(1)
         self.move_board_to_buffer(self.grid, self.num)
         self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
 
     def loop(self) -> None:
-        if badge.input.get_button(badge.input.Buttons.SW8):
-            self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
-            self.move_board_to_buffer(self.grid, self.num)
-            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-            self.oldPos = self.pos.copy()
-        if badge.input.get_button(badge.input.Buttons.SW4):
-            self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
-            self.move_board_to_buffer(self.grid, self.num)
-            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-            self.oldPos = self.pos.copy()
-        if badge.input.get_button(badge.input.Buttons.SW18):
-            self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
-            self.move_board_to_buffer(self.grid, self.num)
-            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-            self.oldPos = self.pos.copy()
-        if badge.input.get_button(badge.input.Buttons.SW13):
-            self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
-            self.move_board_to_buffer(self.grid, self.num)
-            self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-            self.oldPos = self.pos.copy()
-        if badge.input.get_button(badge.input.Buttons.SW5):
-            if self.selected == self.pos:
-                self.erase_selection(self.selected[0], self.selected[1])
-                self.selected = [-1, -1]
-            elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
-                self.selected = self.pos.copy()
-                self.draw_selection(self.selected[0], self.selected[1])
-            else:
-                self.erase_selection(self.selected[0], self.selected[1])
-                self.handle_move([self.selected, self.pos])
-                self.selected = [-1, -1]
+        if self.state == "Home":
+            if badge.input.get_button(badge.input.Buttons.SW10):
+                self.join_lobby()
+            elif badge.input.get_button(badge.input.Buttons.SW18):
+                self.create_lobby()
+        elif self.state == "Game":
+            if badge.input.get_button(badge.input.Buttons.SW8):
+                self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
                 self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
+            if badge.input.get_button(badge.input.Buttons.SW4):
+                self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
+            if badge.input.get_button(badge.input.Buttons.SW18):
+                self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
+            if badge.input.get_button(badge.input.Buttons.SW13):
+                self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
+                self.move_board_to_buffer(self.grid, self.num)
+                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
+                self.oldPos = self.pos.copy()
+            if badge.input.get_button(badge.input.Buttons.SW5):
+                if self.selected == self.pos:
+                    self.erase_selection(self.selected[0], self.selected[1])
+                    self.selected = [-1, -1]
+                elif self.selected == [-1, -1] and self.grid[self.pos[1]][self.pos[0]] > 0:
+                    self.selected = self.pos.copy()
+                    self.draw_selection(self.selected[0], self.selected[1])
+                else:
+                    self.erase_selection(self.selected[0], self.selected[1])
+                    self.handle_move([self.selected, self.pos])
+                    self.selected = [-1, -1]
+                    self.move_board_to_buffer(self.grid, self.num)
+        
+        elif self.state == "Lobby":
+            self.display_lobby()
