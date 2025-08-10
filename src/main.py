@@ -175,6 +175,8 @@ class App(badge.BaseApp):
             if dx <= 1 and dy <= 1 and not (dx == 0 and dy == 0):
                 self.grid[ty][tx] = piece
                 self.grid[sy][sx] = 0
+
+        self.send_move(move)
     
     def send_move(self, move):
         if self.state != "Game":
@@ -204,34 +206,14 @@ class App(badge.BaseApp):
             if new_player not in self.players:
                 self.players.append(new_player)
         elif packet.data.startswith("move:".encode('utf-8')):
-            pass
+            try:
+                move_data = packet.data.decode('utf-8').split(":", 1)[1]
+                move = eval(move_data)
+                self.handle_move(move)
+            except ValueError as e:
+                raise RuntimeError(f"Invalid move data received: {e}")
 
         return
-
-        if (self.is_host and packet.data == "join_request".encode('utf-8') and self.state == "Lobby"):
-            new_player = packet.source
-            if new_player not in self.players:
-                self.players.append(new_player)
-                badge.radio.send_packet(new_player, f"join_accepted:{','.join(self.players)}".encode('utf-8'))
-                badge.display.text(f"Player {new_player} joined", 0, 0)
-                for player in self.players.remove(new_player):
-                    badge.radio.send_packet(player, f"player_joined:{new_player}".encode('utf-8'))
-            else:
-                pass
-        elif (not self.is_host and packet.data == "join_accepted".encode('utf-8')):
-            badge.display.text("Joined lobby", 0, 0)
-            self.players.append(packet.source)
-            self.state = "Lobby"
-        elif packet.data.startswith(b"player_joined:"):
-            new_player = packet.data.decode('utf-8').split(":")[1]
-            if new_player not in self.players:
-                self.players.append(new_player)
-        elif packet.data.startswith(b"join_accepted:"):
-            players_list = packet.data.decode('utf-8').split(":")[1]
-            self.players = players_list.split(",")
-        elif packet.data.startswith(b"move:"):
-            move = packet.data.decode('utf-8').split(":")[1]
-            self.handle_move(packet.source, move)
     
     def display_home(self) -> None:
         if self.state != "Home":
