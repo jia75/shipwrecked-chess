@@ -118,8 +118,6 @@ class App(badge.BaseApp):
 
         self.grid[ty][tx] = piece
         self.grid[sy][sx] = 0
-
-        self.send_move(move)
     
     def send_move(self, move):
         if self.state != "Game":
@@ -276,6 +274,7 @@ class App(badge.BaseApp):
                 else:
                     self.erase_selection(self.selected[0], self.selected[1])
                     self.handle_move([self.selected, self.pos])
+                    self.send_move([self.selected, self.pos])
                     self.selected = [-1, -1]
                     self.move_board_to_buffer(self.grid, self.num)
         
