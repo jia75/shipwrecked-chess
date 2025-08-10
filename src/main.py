@@ -49,15 +49,15 @@ class App(badge.BaseApp):
                 self.draw_square_to_buffer(row_index*14, column_index*14, board[row_index][column_index])
 
     def create_lobby(self) -> None:
-        self.isHost = True
+        self.is_host = True
         self.players = [badge.contacts.my_contact()]
         self.state = "Lobby"
 
     def join_lobby(self) -> None:
         # 4023
-        if self.isHost:
+        if self.is_host:
             raise RuntimeError("Cannot join lobby as host")
-        badge.radio.send_packet(0x362a, "join_request".encode('utf-8'))
+        badge.radio.send_packet(0xffff, "join_request".encode('utf-8'))
         self.state = "Lobby"
         
     def handle_move(self, move) -> None:
@@ -181,18 +181,27 @@ class App(badge.BaseApp):
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
-        if packet.data == "join_request".encode('utf-8'):
-            pass
-        elif packet.data == "join_accepted".encode('utf-8'):
-            pass
+        if packet.data == "join_request".encode('utf-8'): # received by host
+            if self.state == "Lobby" and self.is_host and len(self.players) < 4:
+                badge.radio.send_packet(packet.source, f"join_accepted".encode('utf-8'))
+                self.players.append("")
+        elif packet.data == "join_accepted".encode('utf-8') and not self.is_host: # received by guest
+            if self.state == "Lobby":
+                badge.radio.send_packet(packet.source, f"join_confirmed".encode('utf-8'))
+                self.state = "Game"
+            else:
+                badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
+        elif packet.data == "join_confirmed".encode('utf-8') and self.is_host: # received by host
+            if self.state == "Lobby" and self.is_host:
+
         elif packet.data.startswith("player_joined:".encode('utf-8')):
             pass
         elif packet.data.startswith("move:".encode('utf-8')):
             pass
 
         return
-        
-        if (self.isHost and packet.data == "join_request".encode('utf-8') and self.state == "Lobby"):
+
+        if (self.is_host and packet.data == "join_request".encode('utf-8') and self.state == "Lobby"):
             new_player = packet.source
             if new_player not in self.players:
                 self.players.append(new_player)
@@ -202,7 +211,7 @@ class App(badge.BaseApp):
                     badge.radio.send_packet(player, f"player_joined:{new_player}".encode('utf-8'))
             else:
                 pass
-        elif (not self.isHost and packet.data == "join_accepted".encode('utf-8')):
+        elif (not self.is_host and packet.data == "join_accepted".encode('utf-8')):
             badge.display.text("Joined lobby", 0, 0)
             self.players.append(packet.source)
             self.state = "Lobby"
@@ -217,7 +226,7 @@ class App(badge.BaseApp):
             move = packet.data.decode('utf-8').split(":")[1]
             self.handle_move(packet.source, move)
     
-    def display_home(self):
+    def display_home(self) -> None:
         if self.state != "Home":
             raise RuntimeError("Can't display home; not in home state")
         badge.display.fill(1)
@@ -225,9 +234,18 @@ class App(badge.BaseApp):
         badge.display.text("<- Create lobby", 0, 88)
         badge.display.text("<- Join lobby", 0, 178)
 
+    def display_lobby(self) -> None:
+        if self.state != "Home":
+            raise RuntimeError("Can't display home; not in \"home\" state")
+        badge.display.fill(1)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        player_count = len(self.players)
+        badge.display.text("Lobby ("+player_count+"/4)", 0, 88)
+        for i in range(player_count):
+            badge.display.text(str(players[i]), 0, 108+i*20)
 
     def on_open(self) -> None:
-        self.isHost = False
+        self.is_host = False
         self.players = []
         self.state = "Home" # Home, Game, Lobby
         self.display_home()
