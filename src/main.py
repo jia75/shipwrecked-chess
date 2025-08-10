@@ -289,8 +289,13 @@ class App(badge.BaseApp):
 
     def on_open(self) -> None:
         self.is_host = False
+        try:
+            badgeId = badge.contacts.my_contact().badge_id
+        except Exception as e:
+            self.state = "NoBadge"
+            return
         self.players = []
-        self.state = "Home" # Home, Game, Lobby
+        self.state = "Home" # Home, Game, Lobby, NoBadge
         self.last_player_size = 0
         self.connected_to_lobby = False
         self.unsure_players = 0
@@ -302,8 +307,22 @@ class App(badge.BaseApp):
         # self.move_board_to_buffer(self.grid, self.num)
         # self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
 
+    def display_no_badge(self) -> None:
+        badge.display.fill(1)
+        badge.display.text("Dawg you don't have a badge id", 0, 0)
+        badge.display.text("Don't wipe out your config", 0, 88)
+        def display_shrug(self) -> None:
+            shrug = r"""
+            ¯\_()_/¯
+            """
+            badge.display.fill(1)
+            badge.display.nice_text(shrug, 0, 0, font=32)
+            badge.display.show()
+
     def loop(self) -> None:
-        if self.state == "Home":
+        if self.state == "NoBadge":
+            self.display_no_badge()
+        elif self.state == "Home":
             if badge.input.get_button(badge.input.Buttons.SW10):
                 self.join_lobby()
             elif badge.input.get_button(badge.input.Buttons.SW18):
