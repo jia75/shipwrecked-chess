@@ -35,6 +35,7 @@ class App(badge.BaseApp):
         self.oldPos = [3, 13]
         self.selected = [-1, -1]
         self.last_player_size = 0
+        self.state = "Home" # Home, Game, Lobby, NoBadge
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if piece == -1:
@@ -42,14 +43,24 @@ class App(badge.BaseApp):
         badge.display.rect(x, y, 15, 15, 0)
         if piece == 0:
             return
+        piece_mappings = {
+            1: "P",
+            2: "N",
+            3: "B",
+            4: "R",
+            5: "Q",
+            6: "K",
+        }
+        ptype = piece % 10
+        letter = piece_mappings.get(ptype, "?")
         if piece//10 == 1:
-            badge.display.nice_text(str(piece%10), x, y, 18, rot=0)
+            badge.display.nice_text(letter, x, y, 18, rot=0)
         elif piece//10 == 2:
-            badge.display.nice_text(str(piece%10), x+14, y, 18, rot=90)
+            badge.display.nice_text(letter, x+14, y, 18, rot=90)
         elif piece//10 == 3:
-            badge.display.nice_text(str(piece%10), x+14, y+14, 18, rot=180)
+            badge.display.nice_text(letter, x+14, y+14, 18, rot=180)
         elif piece//10 == 4:
-            badge.display.nice_text(str(piece%10), x, y+14, 18, rot=270)
+            badge.display.nice_text(letter, x, y+14, 18, rot=270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for column_index in range(14):
@@ -102,8 +113,6 @@ class App(badge.BaseApp):
         self.grid[sy][sx] = 0
 
         self.move_board_to_buffer(self.grid, self.num)
-
-        self.send_move(move)
     
     def send_move(self, move):
         if self.state != "Game":
@@ -260,6 +269,8 @@ class App(badge.BaseApp):
                 else:
                     self.handle_move([self.selected, self.pos])
                     self.erase_selection(self.selected[0], self.selected[1])
+                    self.handle_move([self.selected, self.pos])
+                    self.send_move([self.selected, self.pos])
                     self.selected = [-1, -1]
         
         elif self.state == "Lobby":
