@@ -38,6 +38,56 @@ class App(badge.BaseApp):
         self.last_player_size = 0
         self.state = "Home" # Home, Game, Lobby, NoBadge
 
+    def rotated_fill_aid(self, x, y, x_off, y_off, w, h, color, rot):
+        if rot == 0:
+            badge.display.fill_rect(x+x_off, y+y_off, w, h, color)
+        elif rot == 90:
+            badge.display.fill_rect(x-y_off-h, y+x_off, h, w, color)
+        elif rot == 180:
+            badge.display.fill_rect(x-x_off-w, y-y_off-h, w, h, color)
+        elif rot == 270:
+            badge.display.fill_rect(x+y_off, y-x_off-w, h, w, color)
+            
+
+    def display_symbol(self, letter: str, x: int, y: int, rot: int):
+        if letter == "P":
+            self.rotated_fill_aid(x, y, 2, 4, 8, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 4, 8, 4, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+        elif letter == "N":
+            self.rotated_fill_aid(x, y, 2, 0, 8, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 2, 4, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 6, 2, 6, 6, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 8, 10, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+        elif letter == "B":
+            self.rotated_fill_aid(x, y, 4, 0, 4, 12, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 2, 8, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 8, 8, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 4, 2, 2, 2, 1, rot)
+            self.rotated_fill_aid(x, y, 6, 4, 2, 2, 1, rot)
+        elif letter == "R":
+            self.rotated_fill_aid(x, y, 0, 0, 12, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 2, 8, 8, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 0, 2, 2, 1, rot)
+            self.rotated_fill_aid(x, y, 6, 0, 2, 2, 1, rot)
+        elif letter == "Q":
+            self.rotated_fill_aid(x, y, 4, 0, 4, 12, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 8, 8, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 2, 2, 6, 0, rot)
+            self.rotated_fill_aid(x, y, 10, 2, 2, 6, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+        elif letter == "K":
+            self.rotated_fill_aid(x, y, 4, 4, 4, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 8, 8, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 4, 2, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 10, 4, 2, 4, 0, rot)
+            self.rotated_fill_aid(x, y, 2, 2, 2, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 8, 2, 2, 2, 0, rot)
+            self.rotated_fill_aid(x, y, 0, 10, 12, 2, 0, rot)
+
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if piece == -1:
             return
@@ -55,13 +105,13 @@ class App(badge.BaseApp):
         ptype = piece % 10
         letter = piece_mappings.get(ptype, "?")
         if piece//10 == 1:
-            badge.display.nice_text(letter, x+2, y, 18, rot=0)
+            self.display_symbol(letter, x+2, y, 0)
         elif piece//10 == 2:
-            badge.display.nice_text(letter, x+16, y, 18, rot=90)
+            self.display_symbol(letter, x+16, y+2, 90)
         elif piece//10 == 3:
-            badge.display.nice_text(letter, x+16, y+14, 18, rot=180)
+            self.display_symbol(letter, x+14, y+14, 180)
         elif piece//10 == 4:
-            badge.display.nice_text(letter, x+2, y+14, 18, rot=270)
+            self.display_symbol(letter, x, y+14, 270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for column_index in range(14):
@@ -111,6 +161,7 @@ class App(badge.BaseApp):
             temp_players = self.players.copy()
             temp_players.remove(badge.contacts.my_contact().badge_id)
             for player in temp_players:
+                utime.sleep(1.5)
                 badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
         self.state = "Game"
         badge.display.fill(1)
@@ -135,6 +186,7 @@ class App(badge.BaseApp):
         if self.state != "Game":
             raise RuntimeError("Cannot send move, not in game state")
         for player in self.players:
+            utime.sleep(1.5)
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
@@ -152,6 +204,7 @@ class App(badge.BaseApp):
                 self.display_lobby()
                 badge.display.show()
             else:
+                utime.sleep(1.5)
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
         elif data_str == "join_confirmed" and self.is_host: # received by host
             if self.state == "Lobby":
@@ -173,6 +226,7 @@ class App(badge.BaseApp):
                     self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
                     badge.display.show()
                     for player in self.players:
+                        utime.sleep(1.5)
                         badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
         elif data_str.startswith("game_start:") and not self.is_host: # received by guests
             if self.state == "Lobby" and not self.is_host:
