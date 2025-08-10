@@ -1,5 +1,4 @@
 import badge
-import utime
 
 """ 
 -1 Forbidden
@@ -36,6 +35,7 @@ class App(badge.BaseApp):
         self.oldPos = [3, 13]
         self.selected = [-1, -1]
         self.last_player_size = 0
+        self.state = "Home" # Home, Game, Lobby, NoBadge
 
     def draw_square_to_buffer(self, x: int, y: int, piece: int) -> None:
         if piece == -1:
@@ -43,14 +43,24 @@ class App(badge.BaseApp):
         badge.display.rect(x, y, 15, 15, 0)
         if piece == 0:
             return
+        piece_mappings = {
+            1: "P",
+            2: "N",
+            3: "B",
+            4: "R",
+            5: "Q",
+            6: "K",
+        }
+        ptype = piece % 10
+        letter = piece_mappings.get(ptype, "?")
         if piece//10 == 1:
-            badge.display.nice_text(str(piece%10), x, y, 18, rot=0)
+            badge.display.nice_text(letter, x, y, 18, rot=0)
         elif piece//10 == 2:
-            badge.display.nice_text(str(piece%10), x+14, y, 18, rot=90)
+            badge.display.nice_text(letter, x+14, y, 18, rot=90)
         elif piece//10 == 3:
-            badge.display.nice_text(str(piece%10), x+14, y+14, 18, rot=180)
+            badge.display.nice_text(letter, x+14, y+14, 18, rot=180)
         elif piece//10 == 4:
-            badge.display.nice_text(str(piece%10), x, y+14, 18, rot=270)
+            badge.display.nice_text(letter, x, y+14, 18, rot=270)
 
     def move_board_to_buffer(self, board: List[List[int]], player_number: int) -> None:
         for column_index in range(14):
@@ -92,6 +102,19 @@ class App(badge.BaseApp):
 
         self.display_lobby()
         badge.display.show()
+
+    def start_game(self) -> None:
+        if self.is_host:
+            if len(self.players) < 2:
+                raise RuntimeError("Not enough players to start game")
+            temp_players = self.players.copy()
+            temp_players.remove(badge.contacts.my_contact().badge_id)
+            for player in temp_players:
+                badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
+        self.state = "Game"
+        badge.display.fill(1)
+        self.move_board_to_buffer(self.grid, self.num)
+        self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
         
     def handle_move(self, move) -> None:
         sx, sy = move[0]
@@ -104,110 +127,8 @@ class App(badge.BaseApp):
         if dest == -1 or (dest > 0 and dest // 10 == self.num):
             return
 
-        if ptype == 1:
-            if tx == sx - 1:
-                if ty == sy and self.grid[ty][tx] == 0:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-                elif (ty == sy - 1 or ty == sy + 1) and self.grid[ty][tx] > 0:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 2:
-            dx = abs(tx - sx)
-            dy = abs(ty - sy)
-            if (dx == 1 and dy == 2) or (dx == 2 and dy == 1):
-                self.grid[ty][tx] = piece
-                self.grid[sy][sx] = 0
-
-        elif ptype == 3:
-            if abs(tx - sx) == abs(ty - sy) and tx != sx:
-                stepx = 1 if tx > sx else -1
-                stepy = 1 if ty > sy else -1
-                x = sx + stepx
-                y = sy + stepy
-                clear = True
-                while x != tx and y != ty:
-                    if self.grid[y][x] != 0:
-                        clear = False
-                        break
-                    x += stepx
-                    y += stepy
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 4:
-            if sx == tx or sy == ty:
-                clear = True
-                if sx == tx:
-                    stepy = 1 if ty > sy else -1
-                    y = sy + stepy
-                    while y != ty:
-                        if self.grid[y][sx] != 0:
-                            clear = False
-                            break
-                        y += stepy
-                else:
-                    stepx = 1 if tx > sx else -1
-                    x = sx + stepx
-                    while x != tx:
-                        if self.grid[sy][x] != 0:
-                            clear = False
-                            break
-                        x += stepx
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 5:
-            dx = tx - sx
-            dy = ty - sy
-            if abs(dx) == abs(dy) and dx != 0:
-                stepx = 1 if dx > 0 else -1
-                stepy = 1 if dy > 0 else -1
-                x = sx + stepx
-                y = sy + stepy
-                clear = True
-                while x != tx and y != ty:
-                    if self.grid[y][x] != 0:
-                        clear = False
-                        break
-                    x += stepx
-                    y += stepy
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-            elif sx == tx or sy == ty:
-                clear = True
-                if sx == tx:
-                    stepy = 1 if ty > sy else -1
-                    y = sy + stepy
-                    while y != ty:
-                        if self.grid[y][sx] != 0:
-                            clear = False
-                            break
-                        y += stepy
-                else:
-                    stepx = 1 if tx > sx else -1
-                    x = sx + stepx
-                    while x != tx:
-                        if self.grid[sy][x] != 0:
-                            clear = False
-                            break
-                        x += stepx
-                if clear:
-                    self.grid[ty][tx] = piece
-                    self.grid[sy][sx] = 0
-
-        elif ptype == 6:
-            dx = abs(tx - sx)
-            dy = abs(ty - sy)
-            if dx <= 1 and dy <= 1 and not (dx == 0 and dy == 0):
-                self.grid[ty][tx] = piece
-                self.grid[sy][sx] = 0
-
-        self.send_move(move)
+        self.grid[ty][tx] = piece
+        self.grid[sy][sx] = 0
     
     def send_move(self, move):
         if self.state != "Game":
@@ -236,10 +157,11 @@ class App(badge.BaseApp):
                 # print([0][3])
                 self.unsure_players -= 1
                 self.players.append(packet.source)
-
                 self.display_lobby()
                 badge.display.show()
                 for player in players:
+                    if player == badge.contacts.my_contact().badge_id:
+                        continue
                     utime.sleep(1500)
                     badge.radio.send_packet(player, f"player_joined:{str(packet.source)}".encode('utf-8')) # tell everyone there's a new player
                 if (len(self.players) >= 4):
@@ -253,12 +175,7 @@ class App(badge.BaseApp):
                         badge.radio.send_packet(player, f"game_start:{self.players.index(player)+1}".encode('utf-8'))
         elif data_str.startswith("game_start:") and not self.is_host: # received by guests
             if self.state == "Lobby" and not self.is_host:
-                self.num = int(data_str.split(":")[1])
-                self.state = "Game"
-                badge.display.fill(1)
-                self.move_board_to_buffer(self.grid, self.num)
-                self.draw_hover(self.pos[0], self.pos[1], self.oldPos[0], self.oldPos[1])
-                badge.display.show()
+                self.start_game()
         elif data_str == "join_canceled" and self.is_host:
             self.players.remove(packet.source)
             self.unsure_players -= 1
@@ -275,8 +192,6 @@ class App(badge.BaseApp):
                 self.handle_move(move)
             except ValueError as e:
                 raise RuntimeError(f"Invalid move data received: {e}")
-
-        return
     
     def display_home(self) -> None:
         if self.state != "Home":
@@ -293,6 +208,8 @@ class App(badge.BaseApp):
         badge.display.nice_text("QuadChess", 0, 0, font=32)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
+        if (self.is_host):
+            badge.display.text("<- Start game override", 0, 178)
         for i in range(player_count):
             badge.display.text(str(self.players[i]), 0, 108+i*20)
 
@@ -368,8 +285,11 @@ class App(badge.BaseApp):
                 else:
                     self.erase_selection(self.selected[0], self.selected[1])
                     self.handle_move([self.selected, self.pos])
+                    self.send_move([self.selected, self.pos])
                     self.selected = [-1, -1]
                     self.move_board_to_buffer(self.grid, self.num)
         
         elif self.state == "Lobby":
-            pass
+            if badge.input.get_button(badge.input.Buttons.SW10):
+                if (self.is_host):
+                    self.start_game()
