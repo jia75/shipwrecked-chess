@@ -17,9 +17,9 @@ import utime
 
 class App(badge.BaseApp):
     def draw_square_to_buffer(x: int, y: int, piece: int) -> None:
-        if not piece == -1:
-            badge.display.rect(x, y, 15, 15, 0)
+        if piece == -1:
             return
+        badge.display.rect(x, y, 15, 15, 0)
         if piece == 0:
             return
         badge.display.nice_text(str(piece%10), x+1,y+1, rot = (piece/10-1)*90)
