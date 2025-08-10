@@ -98,15 +98,10 @@ class App(badge.BaseApp):
         sx, sy = move[0]
         tx, ty = move[1]
 
-        piece = self.grid[sy][sx]
-        dest = self.grid[ty][tx]
-        ptype = piece % 10
-
-        if dest == -1 or (dest > 0 and dest // 10 == self.num):
-            return
-
-        self.grid[ty][tx] = piece
+        self.grid[ty][tx] = self.grid[sy][sx]
         self.grid[sy][sx] = 0
+
+        self.move_board_to_buffer(self.grid, self.num)
 
         self.send_move(move)
     
@@ -183,12 +178,12 @@ class App(badge.BaseApp):
         if self.state != "Lobby":
             raise RuntimeError("Can't display lobby; not in lobby state")
         badge.display.fill(1)
-        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        badge.display.text("QuadChess", 0, 0)
         player_count = len(self.players)
         badge.display.text("Lobby (" + str(player_count) + "/4)", 0, 88)
         badge.display.text("<- Start game", 0, 178)
         for i in range(player_count):
-            badge.display.nice_text(str(self.players[i]), 0, 108+i*20, font=18)
+            badge.display.text(str(self.players[i]), 0, 108+i*20)
         if player_count != self.last_player_size: # only refresh if the player count has changed
             self.last_player_size = player_count
             badge.display.show()
@@ -263,10 +258,9 @@ class App(badge.BaseApp):
                     self.selected = self.pos.copy()
                     self.draw_selection(self.selected[0], self.selected[1])
                 else:
-                    self.erase_selection(self.selected[0], self.selected[1])
                     self.handle_move([self.selected, self.pos])
+                    self.erase_selection(self.selected[0], self.selected[1])
                     self.selected = [-1, -1]
-                    self.move_board_to_buffer(self.grid, self.num)
         
         elif self.state == "Lobby":
             self.display_lobby()
