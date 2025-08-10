@@ -193,7 +193,9 @@ class App(badge.BaseApp):
                 badge.radio.send_packet(packet.source, f"join_canceled".encode('utf-8'))
         elif packet.data == "join_confirmed".encode('utf-8') and self.is_host: # received by host
             if self.state == "Lobby" and self.is_host:
-
+                pass
+            elif packet.data == "join_canceled".encode('utf-8') and self.is_host:
+                self.players.remove(packet.source)
         elif packet.data.startswith("player_joined:".encode('utf-8')):
             pass
         elif packet.data.startswith("move:".encode('utf-8')):
