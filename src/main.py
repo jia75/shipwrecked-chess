@@ -17,6 +17,12 @@ class App(badge.BaseApp):
                      [-1, -1, -1, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1],
                      [-1, -1, -1, 11, 11, 11, 11, 11, 11, 11, 11, -1, -1, -1],
                      [-1, -1, -1, 14, 12, 13, 15, 16, 13, 12, 14, -1, -1, -1]]
+        self.turn = 1
+        self.pos = [3, 13]
+        self.selected = [-1, -1]
+
+    def handle_move(self, move):
+        pass
 
     def on_open(self) -> None:
         self.isHost = False
@@ -24,7 +30,23 @@ class App(badge.BaseApp):
         self.state = "Home" # Home, Game, Lobby
 
     def loop(self) -> None:
-        pass
+        if self.turn != 1:
+            return
+        if badge.input.get_button(badge.input.Buttons.SW8):
+            self.pos[1] = self.pos[1] - 1 if self.pos[1] > 0 else 13
+        if badge.input.get_button(badge.input.Buttons.SW4):
+            self.pos[1] = self.pos[1] + 1 if self.pos[1] < 13 else 0
+        if badge.input.get_button(badge.input.Buttons.SW18):
+            self.pos[0] = self.pos[0] - 1 if self.pos[0] > 0 else 13
+        if badge.input.get_button(badge.input.Buttons.SW13):
+            self.pos[0] = self.pos[0] + 1 if self.pos[0] < 13 else 0
+        if badge.input.get_button(badge.input.Buttons.SW5):
+            if self.selected == self.pos:
+                self.selected = [-1, -1]
+            elif self.selected == [-1, -1]:
+                self.selected = self.pos
+            else:
+                self.handle_move([self.selected, self.pos])
 
     def create_lobby(self) -> None:
         self.isHost = True
