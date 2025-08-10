@@ -51,12 +51,12 @@ class App(badge.BaseApp):
             badge.radio.send_packet(player, f"move:{move}".encode('utf-8'))
 
     def on_packet(self, packet, is_foreground):
-        if (self.isHost and packet.data == "join_request".encode('utf-8')):
+        if (self.isHost and packet.data == "join_request".encode('utf-8') and self.state == "Lobby"):
             new_player = packet.source
             if new_player not in self.players:
                 self.players.append(new_player)
                 badge.radio.send_packet(new_player, f"join_accepted:{','.join(self.players)}".encode('utf-8'))
-                badge.display.show_text(f"Player {new_player} joined")
+                badge.display.text(f"Player {new_player} joined", 0, 0)
                 for player in self.players.remove(new_player):
                     badge.radio.send_packet(player, f"player_joined:{new_player}".encode('utf-8'))
             else:
@@ -80,16 +80,23 @@ class App(badge.BaseApp):
         if self.state != "Home":
             raise RuntimeError("Can't display home; not in home state")
         badge.display.fill(1)
-        badge.display.show_text("Create lobby", 20, 10)
-        badge.display.show_text("Join lobby", 20, 60)
+        badge.display.nice_text("QuadChess", 0, 0, font=32)
+        badge.display.text("<- Create lobby", 0, 80)
+        badge.display.text("<- Join lobby", 0, 140)
 
     def on_open(self) -> None:
         self.isHost = False
         self.players = []
         self.state = "Home" # Home, Game, Lobby
 
-        badge.display.show()
         self.display_home()
+        badge.display.show()
 
     def loop(self) -> None:
-        pass
+        if self.state == "Home":
+            # 15 is join; 6 is create
+            if badge.input.get_button(15):
+                pass
+                # self.join_lobby()
+            elif badge.input.get_button(6):
+                self.create_lobby()
